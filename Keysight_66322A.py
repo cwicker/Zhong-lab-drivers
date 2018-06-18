@@ -107,7 +107,7 @@ class Keysight_36622A(MessageBasedDriver):
         or LIST advance from the remote interface if the bus (software)
         trigger source is currently selected (TRIGger[1|2]:SOURce BUS)
         """
-        self.query('*TRG')
+        self.write('*TRG')
 
     @Feat()
     def test(self):
@@ -115,7 +115,7 @@ class Keysight_36622A(MessageBasedDriver):
         If test fails, one or more error messages will provide additional information.
         Use SYSTem:ERRor? to read error queue
         """
-        return self.query('*TST?')
+        self.write('*TST?')
 
     @Action()
     def wait(self):
@@ -125,7 +125,7 @@ class Keysight_36622A(MessageBasedDriver):
         For example, you can use this with the *TRG command to ensure that the instrument
         is ready for a trigger: *TRG;*WAI;*TRG
         """
-        self.query('*WAI')
+        self.write('*WAI')
 
     @DictFeat(units='V', limits=(10,), keys=(1, 2))
     def voltage(self, key):
@@ -180,12 +180,12 @@ class Keysight_36622A(MessageBasedDriver):
         """Loads the specified arb segment(.arb/.barb)
         or arb sequence (.seq) file in INTERNAL or USB memory into
         volatile memory for the specified channel."""
-        self.query('MMEM:LOAD:DATA{}{}'.format(key, filename))
+        self.query('MMEM:LOAD:DATA{} {}'.format(key, filename))
 
     @DictFeat(keys=(1, 2))
     def load_frequencies(self, filename, key):
         """loads frequency list from file"""
-        self.query('MMEM:LOAD:LIST{}{}'.format(key, filename))
+        self.query('MMEM:LOAD:LIST{} {}'.format(key, filename))
                    
     @Action()
     def abort(self):
@@ -194,19 +194,31 @@ class Keysight_36622A(MessageBasedDriver):
         If INIT:CONT is ON, instrument immediately
         proceeds to wait-for-trigger state.
         """
-        self.query('ABORT')
+        self.write('ABORT')
                
     @DictFeat(keys=(1, 2))
+    def freq_start(self, key):
+        """sets start frequency for sweep
+        """
+        return self.query('SOURCE{}:FREQ:START?'.format(key))
+
+    @freq_start.setter
     def freq_start(self, key, value):
         """sets start frequency for sweep
         """
-        self.write('SOUR{}:FREQ:START{}'.format(key, value))
+        self.write('SOURCE{}:FREQ:START {}'.format(key, value))
                    
     @DictFeat(keys=(1, 2))
+    def freq_stop(self, key):
+        """sets stop frequency for sweep
+        """
+        return self.query('SOURCE{}:FREQ:STOP?'.format(key))
+
+    @freq_stop.setter
     def freq_stop(self, key, value):
         """sets stop frequency for sweep
         """
-        self.write('SOUR{}:FREQ:STOP{}'.format(key, value))
+        self.write('SOURCE{}:FREQ:STOP {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def trigger_source(self, key):
@@ -222,7 +234,7 @@ class Keysight_36622A(MessageBasedDriver):
         an external hardware trigger from the rear-panel Ext Trig connector,
         or a software (bus) trigger
         """
-        self.write('TRIG{}:SOURCE{}'.format(key, value))
+        self.write('TRIG{}:SOURCE {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def force_trigger(self, key):
@@ -240,7 +252,7 @@ class Keysight_36622A(MessageBasedDriver):
     def sweep_mode(self, key, value):
         """sets sweep mode (LINEAR or LOGARITHMIC)
         """
-        self.query('SOURCE{}:SWEEP:SPAC {}'.format(key, value))
+        self.write('SOURCE{}:SWEEP:SPAC {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def sweep_time(self, key):
@@ -252,13 +264,29 @@ class Keysight_36622A(MessageBasedDriver):
     def sweep_time(self, key, value):
         """sets frequency sweep time
         """
-        self.query('SOURCE{}:SWEEP:TIME {}'.format(key, value))
+        self.write('SOURCE{}:SWEEP:TIME {}'.format(key, value))
 
     @Feat()
     def get_error(self):
         """read and clear one error from error queue
         """
         return self.query('SYSTEM:ERROR?')
+
+    @DictFeat()
+    def sweep_state(self, key):
+        return self.query('SOURCE{}:SWEEP:STATE?'.format(key))
+
+    @sweep_state.setter
+    def sweep_state(self, key, value):
+        self.write('SOURCE{}:SWEEP:STATE {}'.format(key, value))
+
+    @DictFeat()
+    def output(self, key):
+        return self.query('OUTPUT{}?'.format(key))
+
+    @output.setter
+    def output(self, key, value):
+        self.write('OUTPUT{} {}'.format(key, value))
 
 
 if __name__ == '__main__':
@@ -275,15 +303,23 @@ if __name__ == '__main__':
     with Keysight_36622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
         print('The identification of this instrument is :' + inst.idn)
         print(str(inst.read_standard_event_status_register))
-        inst.voltage[1] = 5.0 * volt
-        inst.offset[1] = 100 * milivolt
-        inst.frequency[1] = 50 * Hz
-       # inst.waveform[1] = 'SQR'
-        print('Current waveform: ' + inst.waveform[1])
-        print('Current voltage: ' + str(inst.voltage[1]))
-        print('Current frequency: ' + str(inst.frequency[1]))
-        print('Current offset: ' + str(inst.offset[1]))
-        # print('ERROR: ' + inst.get_error)
+        inst.output[1] = 'ON'
+        inst.voltage[1] = 3.0 * volt
+        inst.offset[1] = 0 * milivolt
+        inst.frequency[1] = 20 * Hz
+        inst.waveform[1] = 'SQUARE'
+        #print('Current waveform: ' + inst.waveform[1])
+        #print('Current voltage: ' + str(inst.voltage[1]))
+        #print('Current frequency: ' + str(inst.frequency[1]))
+        #print('Current offset: ' + str(inst.offset[1]))
+        #print('ERROR: ' + inst.get_error)
         #inst.operation_complete
         #inst.clear_status
-        #print(inst.test)
+        #inst.test
+        print("BEGIN FREQUENCY SCAN")
+        inst.freq_start[1] = 100
+        inst.freq_stop[1] = 1000
+        inst.sweep_mode[1] = 'LIN'
+        inst.sweep_time[1] = 20
+        inst.trigger_source[1] = 'BUS'
+        inst.sweep_state[1] = 0
