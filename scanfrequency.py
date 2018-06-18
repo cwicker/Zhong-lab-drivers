@@ -23,11 +23,12 @@ stop = args.stop * Hz
 step = args.step * Hz
 wait = args.wait
 
-with Keysight_36622A('TCPIP::localhost::5678::SOCKET') as inst:
+with Keysight_36622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
     print(inst.idn)
+    print("BEGIN FREQUENCY SCAN")
 
     current = start
-    while current < stop:
+    while current <= stop:
         inst.frequency[1] = current
         print('Changed to {}'.format(current))
         time.sleep(wait)

@@ -11,11 +11,13 @@ class Keysight_36622A(MessageBasedDriver):
     end of the of a message.
     """
 
+    DEFAULTS = {'COMMON': {'write_termination': '\n', 'read_termination': '\n'}}
+
     @Feat()
     def idn(self):
         return self.query('*IDN?')
 
-    @Feat()
+    @Action()
     def clear_status(self):
         """This command clears the following registers:
         1. Standard Event Status
@@ -32,7 +34,7 @@ class Keysight_36622A(MessageBasedDriver):
         Query Syntax:   (None)
 
         """
-        return self.query('*CLS')
+        self.query('*CLS')
 
     @Feat()
     def event_status_enable(self, NRf):
@@ -72,7 +74,7 @@ class Keysight_36622A(MessageBasedDriver):
         """
         return self.query('*ESR?')
 
-    @Feat()
+    @Action()
     def operation_complete(self):
         """This command causes the interface to set the OPC bit (bit 0) of
         the Standard Event Status register when the power supply has completed
@@ -93,7 +95,11 @@ class Keysight_36622A(MessageBasedDriver):
         Parameters: 	(None)
         Related Commands *OPC? *WAI
         """
-        return self.query('*OPC')
+        self.query('*OPC')
+
+    @Action()
+    def operation_completed(self):
+        return self.query('*OPC?')
 
     @Action()
     def trigger(self):
@@ -104,7 +110,7 @@ class Keysight_36622A(MessageBasedDriver):
         self.query('*TRG')
 
     @Feat()
-    def trigger(self):
+    def test(self):
         """Self-Test Query: Performs a complete instrument self-test.
         If test fails, one or more error messages will provide additional information.
         Use SYSTem:ERRor? to read error queue
@@ -125,49 +131,49 @@ class Keysight_36622A(MessageBasedDriver):
     def voltage(self, key):
         """returns current voltage
         """
-        return float(self.query('SOUR{}:VOLT?'.format(key)))
+        return float(self.query('SOURCE{}:VOLT?'.format(key)))
 
     @voltage.setter
-    def voltage(self, value, key):
+    def voltage(self, key, value):
         """Voltage setter
         """
-        self.query('SOUR{}:VOLT{}'.format(key, value))
+        self.write('SOURCE{}:VOLT {}'.format(key, value))
     
     @DictFeat(units='V', limits=(-5, 5, .01), keys=(1, 2))
     def offset(self, key):
         """returns current voltage offset
         """
-        return float(self.query('SOUR{}:VOLT:OFFS?'.format(key)))
+        return float(self.query('SOURCE{}:VOLT:OFFS?'.format(key)))
     
     @offset.setter
-    def offset(self, value, key):
+    def offset(self, key, value):
         """Voltage offset setter
         """
-        self.query('SOUR{}:VOLT:OFFS{}'.format(key, value))
+        self.write('SOURCE{}:VOLT:OFFS {}'.format(key, value))
 
     @DictFeat(units='Hz', limits=(1, 1e+5), keys=(1, 2))
     def frequency(self, key):
         """returns current frequency
         """
-        return float(self.query('SOUR{}:FREQ?'.format(key)))
+        return float(self.query('SOURCE{}:FREQ?'.format(key)))
 
     @frequency.setter
-    def frequency(self, value, key):
+    def frequency(self, key, value):
         """frequency setter
         """
-        self.query('SOUR{}:FREQ{}'.format(key, value))
+        self.write('SOURCE{}:FREQ {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def waveform(self, key):
         """returns current waveform function
         """
-        return self.query('SOUR{}:FUNC?'.format(key))
+        return self.query('SOURCE{}:FUNC?'.format(key))
     
     @waveform.setter
-    def waveform(self, value, key):
+    def waveform(self, key, value):
         """waveform function setter
         """
-        self.query('SOUR{}:FUNC{}'.format(key, value))
+        self.write('SOURCE{}:FUNC {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def load_arbitrary(self, filename, key):
@@ -191,16 +197,16 @@ class Keysight_36622A(MessageBasedDriver):
         self.query('ABORT')
                
     @DictFeat(keys=(1, 2))
-    def freq_start(self, value, key):
+    def freq_start(self, key, value):
         """sets start frequency for sweep
         """
-        self.query('SOUR{}:FREQ:START{}'.format(key, value))
+        self.write('SOUR{}:FREQ:START{}'.format(key, value))
                    
     @DictFeat(keys=(1, 2))
-    def freq_stop(self, value, key):
+    def freq_stop(self, key, value):
         """sets stop frequency for sweep
         """
-        self.query('SOUR{}:FREQ:STOP{}'.format(key, value))
+        self.write('SOUR{}:FREQ:STOP{}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def trigger_source(self, key):
@@ -210,13 +216,13 @@ class Keysight_36622A(MessageBasedDriver):
         return self.query('TRIG{}:SOURCE?'.format(key))
 
     @trigger_source.setter
-    def trigger_source(self, value, key):
+    def trigger_source(self, key, value):
         """Selects the trigger source for sequence, list, burst or sweep.
         The instrument accepts an immediate or timed internal trigger,
         an external hardware trigger from the rear-panel Ext Trig connector,
         or a software (bus) trigger
         """
-        self.query('TRIG{}:SOURCE{}'.format(key, value))
+        self.write('TRIG{}:SOURCE{}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def force_trigger(self, key):
@@ -231,10 +237,10 @@ class Keysight_36622A(MessageBasedDriver):
         return self.query('SOURCE{}:SWEEP:SPAC?'.format(key))
 
     @sweep_mode.setter
-    def sweep_mode(self, value, key):
+    def sweep_mode(self, key, value):
         """sets sweep mode (LINEAR or LOGARITHMIC)
         """
-        self.query('SOURCE{}:SWEEP:SPAC{}'.format(key, value))
+        self.query('SOURCE{}:SWEEP:SPAC {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def sweep_time(self, key):
@@ -243,10 +249,16 @@ class Keysight_36622A(MessageBasedDriver):
         return self.query('SOURCE{}:SWEEP:TIME?'.format(key))
 
     @sweep_time.setter
-    def sweep_time(self, value, key):
+    def sweep_time(self, key, value):
         """sets frequency sweep time
         """
-        self.query('SOURCE{}:SWEEP:TIME{}'.format(key, value))
+        self.query('SOURCE{}:SWEEP:TIME {}'.format(key, value))
+
+    @Feat()
+    def get_error(self):
+        """read and clear one error from error queue
+        """
+        return self.query('SYSTEM:ERROR?')
 
 
 if __name__ == '__main__':
@@ -262,7 +274,16 @@ if __name__ == '__main__':
     # this is the USB VISA Address:
     with Keysight_36622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
         print('The identification of this instrument is :' + inst.idn)
-        inst.voltage[1] = 3 * volt
-        inst.offset[1] = 200 * milivolt
-        inst.frequency[1] = 20 * Hz
-        inst.waveform[1] = 'SIN'
+        print(str(inst.read_standard_event_status_register))
+        inst.voltage[1] = 5.0 * volt
+        inst.offset[1] = 100 * milivolt
+        inst.frequency[1] = 50 * Hz
+       # inst.waveform[1] = 'SQR'
+        print('Current waveform: ' + inst.waveform[1])
+        print('Current voltage: ' + str(inst.voltage[1]))
+        print('Current frequency: ' + str(inst.frequency[1]))
+        print('Current offset: ' + str(inst.offset[1]))
+        # print('ERROR: ' + inst.get_error)
+        #inst.operation_complete
+        #inst.clear_status
+        #print(inst.test)
