@@ -7,7 +7,7 @@ class arbseq_class(object):
 		self.timestep = timestep
 		self.ydata = None
 		self.totaltime = None
-		self.timeexp = 1E-6
+		self.timeexp = 1e-6
 		self.widths = None
 		self.heights = None
 		self.delays = None
@@ -16,7 +16,7 @@ class arbseq_class(object):
 		self.markerstring = None
 		self.markerloc = None
 
-	def createsequence(self):
+	def create_sequence(self):
 		if self.totaltime is None:
 			raise ValueError('createsequence: No value defined for totaltime')
 		if self.widths is None:

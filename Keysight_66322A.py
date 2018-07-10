@@ -63,7 +63,7 @@ class Keysight_33622A(MessageBasedDriver):
         maximum number of write cycles and may cause the memory to fail.
         """
         # NOTE: not sure if the left right angle brackets are necessary here
-        return self.query('*ESE'+str(NRf))
+        return self.query('*ESE {}'.format(NRf))
 
     @Feat()
     def read_standard_event_status_register(self):
@@ -97,7 +97,7 @@ class Keysight_33622A(MessageBasedDriver):
         Parameters: 	(None)
         Related Commands *OPC? *WAI
         """
-        self.query('*OPC')
+        self.write('*OPC')
 
     @Action()
     def operation_completed(self):
@@ -229,17 +229,17 @@ class Keysight_33622A(MessageBasedDriver):
     def output(self, key, value):
         self.write('OUTPUT{} {}'.format(key, value))
 
-    def send_arb(self,arbseq,chn):
+    def send_arb(self,arbseq,chn=1):
     	arb = arbseq.ydata
         sRate = 1/(arbseq.timestep*arbseq.timeexp)
         name = arbseq.name
 
-        self.write('SOURCE{}:DATA:ARB {}, {}'.format(chn,name,arb))
+        self.write('SOURCE{}:DATA:ARB {}, {}'.format(chn, name, arb))
         self.wait
-        self.write('SOURCE{}:FUNC:ARB {}'.format(chn,name))
-        self.write('SOURCE{}:FUNC:ARB:SRATE {}'.format(chn,sRate))
+        self.write('SOURCE{}:FUNC:ARB {}'.format(chn, name))
+        self.write('SOURCE{}:FUNC:ARB:SRATE {}'.format(chn, sRate))
         self.write('MMEM:STORE:DATA "INT:\\{}.arb"'.format(name))
-        print('Arb waveform "{}" downloaded to channel {}'.format(name,chn))
+        print('Arb waveform "{}" downloaded to channel {}'.format(name, chn))
 
         #error checking
         errorstr = self.get_error
@@ -248,22 +248,22 @@ class Keysight_33622A(MessageBasedDriver):
         else:
         	print('Error reported: ' + errorstr)
 
-     def create_arbseq(self,seqname,seqlist,chn=1):
+    def create_arbseq(self,seqname,seqlist,chn=1):
      	
      	seqstring = seqname
 
      	for i in range(len(seqlist)):
      		currentseq = seqlist[i]
-     		self.send_arb(currentseq,chn)
+     		self.send_arb(currentseq, chn)
      		seqstring = seqstring + ',' + get_seqstring(currentseq)
 
      	strlen = len(seqstring.encode('utf-8'))
      	numbytes = sys.getsizeof(strlen)
 
-     	self.write('SOURCE{}:DATA:SEQ #{}{}{},{}'.format(chn,numbytes,strlen,seqname,seqstring))
-     	self.write('SOURCE{}:FUNC:ARB {}'.format(chn,seqname))
+     	self.write('SOURCE{}:DATA:SEQ #{}{}{},{}'.format(chn, numbytes, strlen, seqname, seqstring))
+     	self.write('SOURCE{}:FUNC:ARB {}'.format(chn, seqname))
      	self.write('MMEM:STORE:DATA "INT:\\{}.seq"'.format(seqname))
-     	print('Arb sequence "{}" downloaded to channel {}'.format(seqname,chn))
+     	print('Arb sequence "{}" downloaded to channel {}'.format(seqname, chn))
 
      	#error checking
         errorstr = self.get_error
