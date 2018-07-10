@@ -1,7 +1,9 @@
 from lantz import Feat, DictFeat, Action
 from lantz.messagebased import MessageBasedDriver
+from arbseq_class import arbseq_class
+import sys
 
-class Keysight_36622A(MessageBasedDriver):
+class Keysight_33622A(MessageBasedDriver):
     """This is the driver for the Keysight 36622A."""
 
     """For VISA resource types that correspond to a complete 488.2 protocol
@@ -181,11 +183,6 @@ class Keysight_36622A(MessageBasedDriver):
         or arb sequence (.seq) file in INTERNAL or USB memory into
         volatile memory for the specified channel."""
         self.query('MMEM:LOAD:DATA{} {}'.format(key, filename))
-
-    @DictFeat(keys=(1, 2))
-    def load_frequencies(self, filename, key):
-        """loads frequency list from file"""
-        self.query('MMEM:LOAD:LIST{} {}'.format(key, filename))
                    
     @Action()
     def abort(self):
@@ -195,30 +192,6 @@ class Keysight_36622A(MessageBasedDriver):
         proceeds to wait-for-trigger state.
         """
         self.write('ABORT')
-               
-    @DictFeat(keys=(1, 2))
-    def freq_start(self, key):
-        """sets start frequency for sweep
-        """
-        return self.query('SOURCE{}:FREQ:START?'.format(key))
-
-    @freq_start.setter
-    def freq_start(self, key, value):
-        """sets start frequency for sweep
-        """
-        self.write('SOURCE{}:FREQ:START {}'.format(key, value))
-                   
-    @DictFeat(keys=(1, 2))
-    def freq_stop(self, key):
-        """sets stop frequency for sweep
-        """
-        return self.query('SOURCE{}:FREQ:STOP?'.format(key))
-
-    @freq_stop.setter
-    def freq_stop(self, key, value):
-        """sets stop frequency for sweep
-        """
-        self.write('SOURCE{}:FREQ:STOP {}'.format(key, value))
 
     @DictFeat(keys=(1, 2))
     def trigger_source(self, key):
@@ -242,43 +215,11 @@ class Keysight_36622A(MessageBasedDriver):
         """
         self.query('TRIG{}'.format(key))
 
-    @DictFeat(keys=(1, 2))
-    def sweep_mode(self, key):
-        """returns current sweep mode (LINEAR or LOGARITHMIC)
-        """
-        return self.query('SOURCE{}:SWEEP:SPAC?'.format(key))
-
-    @sweep_mode.setter
-    def sweep_mode(self, key, value):
-        """sets sweep mode (LINEAR or LOGARITHMIC)
-        """
-        self.write('SOURCE{}:SWEEP:SPAC {}'.format(key, value))
-
-    @DictFeat(keys=(1, 2))
-    def sweep_time(self, key):
-        """returns current set frequency sweep time
-        """
-        return self.query('SOURCE{}:SWEEP:TIME?'.format(key))
-
-    @sweep_time.setter
-    def sweep_time(self, key, value):
-        """sets frequency sweep time
-        """
-        self.write('SOURCE{}:SWEEP:TIME {}'.format(key, value))
-
     @Feat()
     def get_error(self):
         """read and clear one error from error queue
         """
         return self.query('SYSTEM:ERROR?')
-
-    @DictFeat()
-    def sweep_state(self, key):
-        return self.query('SOURCE{}:SWEEP:STATE?'.format(key))
-
-    @sweep_state.setter
-    def sweep_state(self, key, value):
-        self.write('SOURCE{}:SWEEP:STATE {}'.format(key, value))
 
     @DictFeat()
     def output(self, key):
@@ -287,6 +228,50 @@ class Keysight_36622A(MessageBasedDriver):
     @output.setter
     def output(self, key, value):
         self.write('OUTPUT{} {}'.format(key, value))
+
+    def send_arb(self,arbseq,chn):
+    	arb = arbseq.ydata
+        sRate = 1/(arbseq.timestep*arbseq.timeexp)
+        name = arbseq.name
+
+        self.write('SOURCE{}:DATA:ARB {}, {}'.format(chn,name,arb))
+        self.wait
+        self.write('SOURCE{}:FUNC:ARB {}'.format(chn,name))
+        self.write('SOURCE{}:FUNC:ARB:SRATE {}'.format(chn,sRate))
+        self.write('MMEM:STORE:DATA "INT:\\{}.arb"'.format(name))
+        print('Arb waveform "{}" downloaded to channel {}'.format(name,chn))
+
+        #error checking
+        errorstr = self.get_error
+        if 'No Error' in errorstr:
+        	print('No errors reported')
+        else:
+        	print('Error reported: ' + errorstr)
+
+     def create_arbseq(self,seqname,seqlist,chn=1):
+     	
+     	seqstring = seqname
+
+     	for i in range(len(seqlist)):
+     		currentseq = seqlist[i]
+     		self.send_arb(currentseq,chn)
+     		seqstring = seqstring + ',' + get_seqstring(currentseq)
+
+     	strlen = len(seqstring.encode('utf-8'))
+     	numbytes = sys.getsizeof(strlen)
+
+     	self.write('SOURCE{}:DATA:SEQ #{}{}{},{}'.format(chn,numbytes,strlen,seqname,seqstring))
+     	self.write('SOURCE{}:FUNC:ARB {}'.format(chn,seqname))
+     	self.write('MMEM:STORE:DATA "INT:\\{}.seq"'.format(seqname))
+     	print('Arb sequence "{}" downloaded to channel {}'.format(seqname,chn))
+
+     	#error checking
+        errorstr = self.get_error
+        if 'No Error' in errorstr:
+        	print('No errors reported')
+        else:
+        	print('Error reported: ' + errorstr)
+
 
 
 if __name__ == '__main__':
@@ -300,7 +285,7 @@ if __name__ == '__main__':
 
     log_to_screen(DEBUG)
     # this is the USB VISA Address:
-    with Keysight_36622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
+    with Keysight_33622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
         print('The identification of this instrument is :' + inst.idn)
         print(str(inst.read_standard_event_status_register))
         inst.output[1] = 'ON'
@@ -316,10 +301,3 @@ if __name__ == '__main__':
         #inst.operation_complete
         #inst.clear_status
         #inst.test
-        print("BEGIN FREQUENCY SCAN")
-        inst.freq_start[1] = 100
-        inst.freq_stop[1] = 1000
-        inst.sweep_mode[1] = 'LIN'
-        inst.sweep_time[1] = 20
-        inst.trigger_source[1] = 'BUS'
-        inst.sweep_state[1] = 0
