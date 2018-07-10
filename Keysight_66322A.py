@@ -36,7 +36,8 @@ class Keysight_33622A(MessageBasedDriver):
         Query Syntax:   (None)
 
         """
-        self.query('*CLS')
+        self.write('*CLS')
+        print('Status cleared')
 
     @Feat()
     def event_status_enable(self, NRf):
@@ -94,7 +95,7 @@ class Keysight_33622A(MessageBasedDriver):
         *OPC does not prevent processing of subsequent commands, but Bit 0
         will not be set until all pending operations are completed.
         Command Syntax: *OPC
-        Parameters: 	(None)
+        Parameters:     (None)
         Related Commands *OPC? *WAI
         """
         self.write('*OPC')
@@ -176,13 +177,6 @@ class Keysight_33622A(MessageBasedDriver):
         """waveform function setter
         """
         self.write('SOURCE{}:FUNC {}'.format(key, value))
-
-    @DictFeat(keys=(1, 2))
-    def load_arbitrary(self, filename, key):
-        """Loads the specified arb segment(.arb/.barb)
-        or arb sequence (.seq) file in INTERNAL or USB memory into
-        volatile memory for the specified channel."""
-        self.query('MMEM:LOAD:DATA{} {}'.format(key, filename))
                    
     @Action()
     def abort(self):
@@ -230,47 +224,65 @@ class Keysight_33622A(MessageBasedDriver):
         self.write('OUTPUT{} {}'.format(key, value))
 
     def send_arb(self,arbseq,chn=1):
-    	arb = arbseq.ydata
+        arb = arbseq.ydata
         sRate = 1/(arbseq.timestep*arbseq.timeexp)
         name = arbseq.name
 
         self.write('SOURCE{}:DATA:ARB {}, {}'.format(chn, name, arb))
         self.wait
+        self.waveform[chn] = 'ARB'
         self.write('SOURCE{}:FUNC:ARB {}'.format(chn, name))
         self.write('SOURCE{}:FUNC:ARB:SRATE {}'.format(chn, sRate))
-        self.write('MMEM:STORE:DATA "INT:\\{}.arb"'.format(name))
+        self.write('MMEM:STORE:DATA{} "INT:\\{}.arb"'.format(chn, name))
         print('Arb waveform "{}" downloaded to channel {}'.format(name, chn))
 
         #error checking
         errorstr = self.get_error
-        if 'No Error' in errorstr:
-        	print('No errors reported')
+        if '+0' in errorstr:
+            print('No errors reported')
         else:
-        	print('Error reported: ' + errorstr)
+            print('Error reported: ' + errorstr)
 
     def create_arbseq(self,seqname,seqlist,chn=1):
-     	
-     	seqstring = seqname
+        
+        seqstring = '"{}"'.format(seqname)
 
-     	for i in range(len(seqlist)):
-     		currentseq = seqlist[i]
-     		self.send_arb(currentseq, chn)
-     		seqstring = seqstring + ',' + get_seqstring(currentseq)
+        for i in range(len(seqlist)):
+            currentseq = seqlist[i]
+            self.send_arb(currentseq, chn)
+            seqstring = seqstring + ',' + currentseq.get_seqstring()
+            print(seqstring)
 
-     	strlen = len(seqstring.encode('utf-8'))
-     	numbytes = sys.getsizeof(strlen)
+        strlen = len(seqstring.encode('utf-8'))
+        numbytes = len(str(strlen))
 
-     	self.write('SOURCE{}:DATA:SEQ #{}{}{},{}'.format(chn, numbytes, strlen, seqname, seqstring))
-     	self.write('SOURCE{}:FUNC:ARB {}'.format(chn, seqname))
-     	self.write('MMEM:STORE:DATA "INT:\\{}.seq"'.format(seqname))
-     	print('Arb sequence "{}" downloaded to channel {}'.format(seqname, chn))
+        print('SOURCE{}:DATA:SEQ #{}{}{}'.format(chn, numbytes, strlen, seqstring))
 
-     	#error checking
+        self.write('SOURCE{}:DATA:SEQ #{}{}{}'.format(chn, numbytes, strlen, seqstring))
+        self.waveform[chn] = 'ARB'
+        self.write('SOURCE{}:FUNC:ARB {}'.format(chn, seqname))
+        self.write('MMEM:STORE:DATA{} "INT:\\{}.seq"'.format(chn, seqname))
+        print('Arb sequence "{}" downloaded to channel {}'.format(seqname, chn))
+
+        #error checking
         errorstr = self.get_error
-        if 'No Error' in errorstr:
-        	print('No errors reported')
+        if "+0" in errorstr:
+            print('No errors reported')
         else:
-        	print('Error reported: ' + errorstr)
+            print('Error reported: ' + errorstr)
+
+    def load_arb(self, name, chn=1):
+        self.write('MMEM:LOAD:DATA{} "INT:\\{}.arb"'.format(chn, name))
+        self.waveform[chn] = 'ARB'
+        self.write('SOURCE{}:FUNC:ARB "INT:\\{}.arb"'.format(chn, name))
+
+    def load_seq(self, seqname, chn=1):
+        self.write('MMEM:LOAD:DATA{} "INT:\\{}.seq"'.format(chn, seqname))
+        self.waveform[chn] = 'ARB'
+        self.write('SOURCE{}:FUNC:ARB "INT:\\{}.seq"'.format(chn, seqname))
+
+    def clear_mem(self, chn=1):
+        self.write('SOURCE{}:DATA:VOL:CLEAR'.format(chn))
 
 
 
