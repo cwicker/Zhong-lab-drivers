@@ -217,13 +217,20 @@ class Keysight_33622A(MessageBasedDriver):
 
     @DictFeat()
     def output(self, key):
+        """Gets output state for specified channel
+        """
         return self.query('OUTPUT{}?'.format(key))
 
     @output.setter
     def output(self, key, value):
+        """Turns output on/off for specified channel
+        """
         self.write('OUTPUT{} {}'.format(key, value))
 
     def send_arb(self,arbseq,chn=1):
+        """Sends and loads an arbseq object to the function generator.
+        This stores the arbitrary waveform as a .arb file in internal memory
+        """
         arb = arbseq.ydata
         sRate = 1/(arbseq.timestep*arbseq.timeexp)
         name = arbseq.name
@@ -244,6 +251,10 @@ class Keysight_33622A(MessageBasedDriver):
             print('Error reported: ' + errorstr)
 
     def create_arbseq(self,seqname,seqlist,chn=1):
+        """Creates an arbitrary sequence from a given list of arbitrary waveforms.
+        Loads each waveform into internal memory, then stores the total sequence
+        as "seqname.seq" in internal memory
+        """
         
         seqstring = '"{}"'.format(seqname)
 
@@ -272,17 +283,30 @@ class Keysight_33622A(MessageBasedDriver):
             print('Error reported: ' + errorstr)
 
     def load_arb(self, name, chn=1):
+        """Loads arbitrary waveform to volatile memory
+        which was previously stored in internal memory
+        """
         self.write('MMEM:LOAD:DATA{} "INT:\\{}.arb"'.format(chn, name))
         self.waveform[chn] = 'ARB'
         self.write('SOURCE{}:FUNC:ARB "INT:\\{}.arb"'.format(chn, name))
 
     def load_seq(self, seqname, chn=1):
+        """Loads arbitrary sequence to volatile memory
+        which was previously stored in internal memory
+        """
         self.write('MMEM:LOAD:DATA{} "INT:\\{}.seq"'.format(chn, seqname))
         self.waveform[chn] = 'ARB'
         self.write('SOURCE{}:FUNC:ARB "INT:\\{}.seq"'.format(chn, seqname))
 
     def clear_mem(self, chn=1):
+        """Clears volatile memory
+        """
         self.write('SOURCE{}:DATA:VOL:CLEAR'.format(chn))
+
+    def delete_arb(self, filename):
+        """Deletes a .arb or .seq file from internal memory
+        """
+        self.write('MMEM:DEL "INT:\\{}"'.format(filename))
 
 
 
