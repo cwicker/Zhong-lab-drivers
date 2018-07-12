@@ -1,8 +1,56 @@
 from Keysight_66322A import Keysight_33622A
 from arbseq_class import arbseq_class
 
-class seqbuild(Keysight_33622A):
-    pass
+class seqbuild(arbseq_class):
+    def __init__(self, seqtype, params):
+        self.seqtype = seqtype
+        self.params = params
+        self.arbseq = None
+
+    def build_arbseq(self, name, timestep)
+        arbseq = arbseq_class(name, timestep)
+        seqtype = self.seqtype
+        voltage = self.params['voltage']
+        
+        if seqtype = 'dc':
+            totaltime = self.params['totaltime']
+            delay = self.params['delay']
+            arbseq.totaltime = totaltime
+            arbseq.heights = [voltage]
+            arbseq.delays = [0]
+            arbseq.widths = [totaltime]
+            arbseq.create_sequence()
+        elif seqtype = 'pulse':
+            totaltime = self.params['totaltime']
+            period = self.params['period']
+            width = self.params['width']
+            delay = period - width
+            pulses = totaltime / period
+            arbseq.totaltime = totaltime
+            arbseq.heights = [voltage] * pulses
+            arbseq.delays = [delay] * pulses
+            arbseq.widths = [width] * pulses
+            arbseq.create_sequence()
+        elif seqtype = 'ramp':
+            slope = self.params['slope']
+            height = -voltage
+            heights = list()
+            while height <= voltage:
+                heights.append(height)
+                height += (slope * timestep)
+            arbseq.heights = heights
+            arbseq.widths = [timestep] * heights.length
+            arbseq.delays = [0] * heights.length
+            arbseq.totaltime = heights.length * timestep
+            arbseq.create_sequence()
+
+        arbseq.nrepeats = self.params['nrepeats']
+        arbseq.repeatstring = self.params['repeatstring']
+        arbseq.markerstring = self.params['markerstring']
+        arbseq.markerloc = self.params['markerloc']
+
+        self.arbseq = arbseq
+
 
 
 if __name__ == '__main__':
