@@ -7,41 +7,39 @@ class seqbuild(arbseq_class):
         self.params = params
         self.arbseq = None
 
-    def build_arbseq(self, name, timestep)
+    def build_arbseq(self, name, timestep):
         arbseq = arbseq_class(name, timestep)
         seqtype = self.seqtype
-        voltage = self.params['voltage']
         
-        if seqtype = 'dc':
+        if seqtype == 'dc':
             totaltime = self.params['totaltime']
-            delay = self.params['delay']
             arbseq.totaltime = totaltime
-            arbseq.heights = [voltage]
+            arbseq.heights = [1]
             arbseq.delays = [0]
             arbseq.widths = [totaltime]
             arbseq.create_sequence()
-        elif seqtype = 'pulse':
+        elif seqtype == 'pulse':
             totaltime = self.params['totaltime']
             period = self.params['period']
             width = self.params['width']
             delay = period - width
-            pulses = totaltime / period
+            pulses = int(totaltime / period)
             arbseq.totaltime = totaltime
-            arbseq.heights = [voltage] * pulses
+            arbseq.heights = [1] * pulses
             arbseq.delays = [delay] * pulses
             arbseq.widths = [width] * pulses
             arbseq.create_sequence()
-        elif seqtype = 'ramp':
+        elif seqtype == 'ramp':
             slope = self.params['slope']
-            height = -voltage
+            height = 0
             heights = list()
-            while height <= voltage:
+            while height <= 1:
                 heights.append(height)
                 height += (slope * timestep)
             arbseq.heights = heights
-            arbseq.widths = [timestep] * heights.length
-            arbseq.delays = [0] * heights.length
-            arbseq.totaltime = heights.length * timestep
+            arbseq.widths = [timestep] * len(heights)
+            arbseq.delays = [0] * len(heights)
+            arbseq.totaltime = len(heights) * timestep
             arbseq.create_sequence()
 
         arbseq.nrepeats = self.params['nrepeats']
@@ -82,7 +80,18 @@ if __name__ == '__main__':
     testseq2.markerstring = 'lowAtStart'
     testseq2.markerloc = 10
 
-    fulltestseq = [testseq, testseq2]
+    params = {'totaltime': 100, 'period': 20, 'width': 10,
+                'nrepeats': 10, 'repeatstring': 'repeat', 'markerstring': 'lowAtStart', 'markerloc': 10}
+    
+    seqbuild1 = seqbuild('dc', params)
+    seqbuild1.build_arbseq('testseq3', 1)
+    testseq3 = seqbuild1.arbseq
+
+    seqbuild2 = seqbuild('pulse', params)
+    seqbuild2.build_arbseq('testseq4', 1)
+    testseq4 = seqbuild2.arbseq
+
+    fulltestseq = [testseq3, testseq4]
 
     with Keysight_33622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
         print('The identification of this instrument is :' + inst.idn)
