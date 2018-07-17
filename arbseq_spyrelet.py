@@ -60,6 +60,7 @@ class ArbSeq(Spyrelet):
         params = self.arbseq_parameters.widget.get()
         channel = params['channel']
         self.fungen.clear_status()
+        self.fungen.clear_mem()
         self.fungen.voltage[channel] = params['voltage']
         self.fungen.output[channel] = 'ON'
         print('initialize')
@@ -70,11 +71,42 @@ class ArbSeq(Spyrelet):
         print("finalize")
         return
 
+    @Task(name='create arbitrary sequence')
+    def make_sequence(self):
+        params = self.sequence_parameters.widget.get()
+        chn = params['channel']
+        seqname = params['seqname']
+        del params['channel']
+        params['seqname'] = "{}".format(seqname)
+        params['init'] = "INT:\\{}".format(params['init'])
+        params['write'] = "INT:\\{}".format(params['write'])
+        params['read'] = "INT:\\{}".format(params['read'])
+        seqstring = str(params.values).strip('[]')
+        print(seqstring)
+        strlen = len(seqstring.encode('utf-8'))
+        numbytes = len(str(strlen))
+        self.write('SOURCE{}:DATA:SEQ #{}{}{}'.format(chn, numbytes, strlen, seqstring))
+        self.waveform[chn] = 'ARB'
+        self.write('SOURCE{}:FUNC:ARB {}'.format(chn, seqname))
+        self.write('MMEM:STORE:DATA{} "INT:\\{}.seq"'.format(chn, seqname))
+        print('Arb sequence "{}" downloaded to channel {}'.format(seqname, chn))
+
+    @make_sequence.initializer
+    def initialize(self):
+        print('initialize')
+        return
+
+    @make_sequence.finalizer
+    def finalize(self):
+        print('finalize')
+        return
 
     @Element()
     def arbseq_parameters(self):
+        repeatstrings = ['once', 'onceWaitTrig', 'repeat', 'repeatInf', 'repeatTilTrig']
+        markerstrings = ['maintain', 'lowAtStart', 'highAtStart', 'highAtStartGoLow']
         params = [
-        ('seqname', {'type': str, 'default': 'arbitrary_dc'}),
+        ('arbname', {'type': str, 'default': 'arbitrary_name'}),
         ('seqtype', {'type': list, 'items': ['dc', 'pulse', 'ramp']}),
         ('channel', {'type': dict, 'items': {'1': 1, '2': 2}}),
         ('voltage', {'type': float, 'default': 0.05, 'units': 'V'}),
@@ -82,16 +114,39 @@ class ArbSeq(Spyrelet):
         ('totaltime', {'type': float, 'default': 100}),
         ('width', {'type': float, 'default': 10}),
         ('period', {'type': float, 'default': 10}),
-        ('slope', {'type': float, 'default': 0.01}),
-        ('repeatstring', {'type': list, 'items': 
-            ['once', 'onceWaitTrig', 'repeat', 'repeatInf', 'repeatTilTrig']}),
-        ('markerstring', {'type': list, 'items': 
-            ['maintain', 'lowAtStart', 'highAtStart', 'highAtStartGoLow']}),
-        ('nrepeats', {'type': int, 'default': 0}),
-        ('markerloc', {'type': int, 'default': 0}),
+        ('slope', {'type': float, 'default': 0.01})
         ]
         w = ParamWidget(params)
         return w
+
+    @Element()
+    def sequence_parameters(self):
+        repeatstrings = ['once', 'onceWaitTrig', 'repeat', 'repeatInf', 'repeatTilTrig']
+        markerstrings = ['maintain', 'lowAtStart', 'highAtStart', 'highAtStartGoLow']
+        arblist = self.fungen.list_arb()
+        print(arblist)
+        params = [
+        ('channel', {'type': dict, 'items': {'1': 1, '2': 2}}),
+        ('seqname', {'type': str, 'default': 'sequence_name'}),
+        ('init', {'type': list, 'items': arblist}),
+        ('repeatstring1', {'type': list, 'items': repeatstrings}),
+        ('markerstring1', {'type': list, 'items': markerstrings}),
+        ('nrepeats1', {'type': int, 'default': 0}),
+        ('markerloc1', {'type': int, 'default': 0}),
+        ('write', {'type': list, 'items': arblist}),
+        ('repeatstring2', {'type': list, 'items': repeatstrings}),
+        ('markerstring2', {'type': list, 'items': markerstrings}),
+        ('nrepeats2', {'type': int, 'default': 0}),
+        ('markerloc2', {'type': int, 'default': 0}),
+        ('read', {'type': list, 'items': arblist}),
+        ('repeatstring3', {'type': list, 'items': repeatstrings}),
+        ('markerstring3', {'type': list, 'items': markerstrings}),
+        ('nrepeats3', {'type': int, 'default': 0}),
+        ('markerloc3', {'type': int, 'default': 0})
+        ]
+        w = ParamWidget(params)
+        return w
+
 
     @Element()
     def plot(self):
