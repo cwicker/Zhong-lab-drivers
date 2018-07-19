@@ -27,7 +27,7 @@ class ArbSeq(Spyrelet):
         params = self.arbseq_parameters.widget.get()
         print(params)
         seqtype = params['seqtype']
-        name = params['seqname']
+        name = params['arbname']
         timestep = params['timestep']
 
         seqbuild = SeqBuild(seqtype, params)
@@ -71,28 +71,45 @@ class ArbSeq(Spyrelet):
         print("finalize")
         return
 
+    def make_seqstring(self, params):
+        seqstring = '"{}",{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(
+            params['seqname'], params['init'], params['nrepeats1'], params['repeatstring1'], 
+            params['markerstring1'], params['markerloc1'], params['write'], params['nrepeats2'], 
+            params['repeatstring2'], params['markerstring2'], params['markerloc2'],
+            params['read'], params['nrepeats3'], params['repeatstring3'], params['markerstring3'],
+            params['markerloc3'])
+        return seqstring
+
+
     @Task(name='create arbitrary sequence')
     def make_sequence(self):
         params = self.sequence_parameters.widget.get()
         chn = params['channel']
         seqname = params['seqname']
-        del params['channel']
-        params['seqname'] = "{}".format(seqname)
-        params['init'] = "INT:\\{}".format(params['init'])
-        params['write'] = "INT:\\{}".format(params['write'])
-        params['read'] = "INT:\\{}".format(params['read'])
-        seqstring = str(params.values).strip('[]')
-        print(seqstring)
+
+        params['init'] = '"INT:\\{}"'.format(params['init'])
+        params['write'] = '"INT:\\{}"'.format(params['write'])
+        params['read'] = '"INT:\\{}"'.format(params['read'])
+
+        self.fungen.write('MMEM:LOAD:DATA{} {}'.format(chn, params['init']))
+        self.fungen.write('MMEM:LOAD:DATA{} {}'.format(chn, params['write']))
+        self.fungen.write('MMEM:LOAD:DATA{} {}'.format(chn, params['read']))
+
+        seqstring = self.make_seqstring(params)
         strlen = len(seqstring.encode('utf-8'))
         numbytes = len(str(strlen))
-        self.write('SOURCE{}:DATA:SEQ #{}{}{}'.format(chn, numbytes, strlen, seqstring))
-        self.waveform[chn] = 'ARB'
-        self.write('SOURCE{}:FUNC:ARB {}'.format(chn, seqname))
-        self.write('MMEM:STORE:DATA{} "INT:\\{}.seq"'.format(chn, seqname))
+        print('SOURCE{}:DATA:SEQ #{}{}{}'.format(chn, numbytes, strlen, seqstring))
+        self.fungen.write('SOURCE{}:DATA:SEQ #{}{}{}'.format(chn, numbytes, strlen, seqstring))
+        self.fungen.waveform[chn] = 'ARB'
+        self.fungen.write('SOURCE{}:FUNC:ARB {}'.format(chn, seqname))
+        self.fungen.write('MMEM:STORE:DATA{} "INT:\\{}.seq"'.format(chn, seqname))
         print('Arb sequence "{}" downloaded to channel {}'.format(seqname, chn))
 
     @make_sequence.initializer
     def initialize(self):
+        params = self.arbseq_parameters.widget.get()
+        channel = params['channel']
+        self.fungen.output[channel] = 'ON'
         print('initialize')
         return
 
