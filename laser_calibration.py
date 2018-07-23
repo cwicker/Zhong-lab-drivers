@@ -24,7 +24,7 @@ class laser_calibration(Spyrelet):
     }
 
     @Task()
-    def calibrate1(self, **kwargs):
+    def calibrate_amplitude(self, **kwargs):
         self.dataset.clear()
         params = self.sweep_parameters.widget.get()
         chn = params['channel']
@@ -40,11 +40,11 @@ class laser_calibration(Spyrelet):
             'y': self.osc.measure_mean(chn),
             }
 
-            self.calibrate1.acquire(values)
+            self.calibrate_amplitude.acquire(values)
             current += params['step']
             step += 1
 
-    @calibrate1.initializer
+    @calibrate_amplitude.initializer
     def initialize(self):
         params = self.sweep_parameters.widget.get()
         chn = params['channel']
@@ -52,7 +52,7 @@ class laser_calibration(Spyrelet):
         self.fungen.output[chn] = 'ON'
         return
 
-    @calibrate1.finalizer
+    @calibrate_amplitude.finalizer
     def finalize(self):
         params = self.sweep_parameters.widget.get()
         chn = params['channel']
@@ -60,7 +60,7 @@ class laser_calibration(Spyrelet):
         return
 
     @Task()
-    def calibrate2(self, **kwargs):
+    def calibrate_frequency(self, **kwargs):
         self.dataset.clear()
         params = self.sweep_parameters.widget.get()
         current = params['start']
@@ -75,11 +75,11 @@ class laser_calibration(Spyrelet):
             'y': self.osc.measure_frequency(chn),
             }
 
-            self.calibrate2.acquire(values)
+            self.calibrate_frequency.acquire(values)
             current += params['step']
             step += 1
 
-    @calibrate2.initializer
+    @calibrate_frequency.initializer
     def initialize(self):
         params = self.sweep_parameters.widget.get()
         chn = params['channel']
@@ -87,7 +87,7 @@ class laser_calibration(Spyrelet):
         self.fungen.output[chn] = 'ON'
         return
 
-    @calibrate2.finalizer
+    @calibrate_frequency.finalizer
     def finalize(self):
         params = self.sweep_parameters.widget.get()
         chn = params['channel']
@@ -113,18 +113,18 @@ class laser_calibration(Spyrelet):
         p.plot('Frequency')
         return p
 
-    @latest.on(calibrate1.acquired)
+    @latest.on(calibrate_amplitude.acquired)
     def latest_update(self, ev):
         w = ev.widget
-        latest_data = self.data
-        w.set('Amplitude', xs=latest_data.x, ys=latest_data.y)
+        data = self.data
+        w.set('Amplitude', xs=data.x, ys=data.y)
         return
 
-    @latest.on(calibrate2.acquired)
+    @latest.on(calibrate_frequency.acquired)
     def latest_update(self, ev):
         w = ev.widget
-        latest_data = self.data
-        w.set('Frequency', xs=latest_data.x, ys=latest_data.y)
+        data = self.data
+        w.set('Frequency', xs=data.x, ys=data.y)
         return
  
     @Element()
