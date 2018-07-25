@@ -1,14 +1,15 @@
-from Keysight_66322A import Keysight_33622A
-from arbseq_class import arbseq_class
+from lantz.drivers.keysight.Keysight_66322A import Keysight_33622A
+from lantz.drivers.keysight.arbseq_class import Arbseq_Class
 
-class seqbuild(arbseq_class):
+class SeqBuild(object):
+
     def __init__(self, seqtype, params):
         self.seqtype = seqtype
         self.params = params
         self.arbseq = None
 
     def build_arbseq(self, name, timestep):
-        arbseq = arbseq_class(name, timestep)
+        arbseq = Arbseq_Class(name, timestep)
         seqtype = self.seqtype
         
         if seqtype == 'dc':
@@ -42,10 +43,12 @@ class seqbuild(arbseq_class):
             arbseq.totaltime = len(heights) * timestep
             arbseq.create_sequence()
 
+        """
         arbseq.nrepeats = self.params['nrepeats']
         arbseq.repeatstring = self.params['repeatstring']
         arbseq.markerstring = self.params['markerstring']
         arbseq.markerloc = self.params['markerloc']
+        """
 
         self.arbseq = arbseq
 
@@ -56,7 +59,7 @@ if __name__ == '__main__':
     from lantz import Q_
     from lantz.log import log_to_screen, DEBUG
 
-    testseq = arbseq_class('testseq', 1)
+    testseq = Arbseq_Class('testseq', 1)
     testseq.totaltime = 100
     testseq.widths = (5, 5, 5, 5)
     testseq.delays = (5, 20, 20, 20)
@@ -68,7 +71,7 @@ if __name__ == '__main__':
     testseq.markerstring = 'lowAtStart'
     testseq.markerloc = 10
 
-    testseq2 = arbseq_class('testseq2', 1)
+    testseq2 = Arbseq_Class('testseq2', 1)
     testseq2.totaltime = 100
     testseq2.widths = (5, 5, 5, 5)
     testseq2.delays = (5, 20, 20, 20)
@@ -83,11 +86,11 @@ if __name__ == '__main__':
     params = {'totaltime': 100, 'period': 20, 'width': 10,
                 'nrepeats': 10, 'repeatstring': 'repeat', 'markerstring': 'lowAtStart', 'markerloc': 10}
     
-    seqbuild1 = seqbuild('dc', params)
+    seqbuild1 = SeqBuild('dc', params)
     seqbuild1.build_arbseq('testseq3', 1)
     testseq3 = seqbuild1.arbseq
 
-    seqbuild2 = seqbuild('pulse', params)
+    seqbuild2 = SeqBuild('pulse', params)
     seqbuild2.build_arbseq('testseq4', 1)
     testseq4 = seqbuild2.arbseq
 

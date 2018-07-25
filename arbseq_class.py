@@ -1,7 +1,6 @@
+class Arbseq_Class(object):
 
-class arbseq_class(object):
-
-    def __init__(self,name,timestep):
+    def __init__(self, name, timestep):
         self.name = name
         self.timestep = timestep
         self.ydata = None
@@ -34,7 +33,7 @@ class arbseq_class(object):
             height = self.heights[i]
             delay = self.delays[i]
 
-            if (timestep > width or timestep > delay):
+            if (timestep > width or (delay > 0 and timestep > delay)):
                 raise ValueError('createsequence: timestep does not match values')
 
             for x in range(int(delay/timestep)):
@@ -47,7 +46,7 @@ class arbseq_class(object):
         for x in range(int(totaltime/timestep)):
             values.append(0)
 
-        self.ydata = str(values).strip('[]')
+        self.ydata = values
 
     def get_seqstring(self):
         seqstring = ('"{}"'.format(self.name) 
