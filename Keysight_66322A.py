@@ -1,6 +1,6 @@
 from lantz import Feat, DictFeat, Action
 from lantz.messagebased import MessageBasedDriver
-from arbseq_class import arbseq_class
+#from arbseq_class import arbseq_class
 import sys
 
 class Keysight_33622A(MessageBasedDriver):
@@ -308,6 +308,12 @@ class Keysight_33622A(MessageBasedDriver):
         """
         self.write('MMEM:DEL "INT:\\{}"'.format(filename))
 
+    def noise(self, chn, bwidth):
+    	"""Create noise of given bandwidth
+    	"""
+    	self.write('SOURCE{}:FUNC NOIS'.format(chn))
+    	self.write('SOURCE{}:FUNC:NOISE:BAND {}'.format(chn, bwidth))
+
 
 
 if __name__ == '__main__':
@@ -324,16 +330,12 @@ if __name__ == '__main__':
     with Keysight_33622A('USB0::0x0957::0x5707::MY53801461::0::INSTR') as inst:
         print('The identification of this instrument is :' + inst.idn)
         print(str(inst.read_standard_event_status_register))
-        inst.output[1] = 'ON'
-        inst.voltage[1] = 3.0 * volt
-        inst.offset[1] = 0 * milivolt
-        inst.frequency[1] = 20 * Hz
-        inst.waveform[1] = 'SQUARE'
+        #inst.noise(1, 20000)
         #print('Current waveform: ' + inst.waveform[1])
         #print('Current voltage: ' + str(inst.voltage[1]))
         #print('Current frequency: ' + str(inst.frequency[1]))
         #print('Current offset: ' + str(inst.offset[1]))
-        #print('ERROR: ' + inst.get_error)
+        print('ERROR: ' + inst.get_error)
         #inst.operation_complete
         #inst.clear_status
         #inst.test
