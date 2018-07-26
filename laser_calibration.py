@@ -30,16 +30,18 @@ class laser_calibration(Spyrelet):
         chn = params['channel']
         current = params['start']
         while current <= params['stop']:
-            self.fungen.voltage[chn] = current
+            self.fungen.offset[chn] = current
             print('Changed to {}'.format(current))
 
+            time.sleep(params['wait'])
+
             values = {
-            'x': self.fungen.voltage[chn],
+            'x': self.fungen.offset[chn],
             'y': self.osc.measure_mean(chn),
             }
             self.calibrate_amplitude.acquire(values)
 
-            time.sleep(params['wait'])
+            #time.sleep(params['wait'])
             current += params['step']
 
     @calibrate_amplitude.initializer
@@ -61,18 +63,21 @@ class laser_calibration(Spyrelet):
     def calibrate_frequency(self, **kwargs):
         self.dataset.clear()
         params = self.sweep_parameters.widget.get()
+        chn = params['channel']
         current = params['start']
         while current <= params['stop']:
-            self.fungen.voltage[1] = current
+            self.fungen.offset[chn] = current
             print('Changed to {}'.format(current))
 
+            time.sleep(params['wait'])
+
             values = {
-            'x': self.fungen.voltage[chn],
+            'x': self.fungen.offset[chn],
             'y': self.osc.measure_frequency(chn),
             }
             self.calibrate_frequency.acquire(values)
 
-            time.sleep(params['wait'])
+            #time.sleep(params['wait'])
             current += params['step']
 
     @calibrate_frequency.initializer
