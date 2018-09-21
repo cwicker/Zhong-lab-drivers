@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+    lantz.drivers.anritsu.ms2721b.py
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Implementation of Anritsu MS2721b spectrum analyzer
+    Author: Peter Bevington
+    Date: 8/10/2018
+"""
+
 from lantz import Feat, DictFeat, Action
 from lantz.messagebased import MessageBasedDriver
 

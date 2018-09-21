@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+    lantz.drivers.keysight.Keysight_33622A.py
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Implementation of Keysight 33622A AWG
+    Author: Peter Bevington
+    Date: 8/10/2018
+"""
+
 from lantz import Feat, DictFeat, Action
 from lantz.messagebased import MessageBasedDriver
 from lantz.drivers.keysight.arbseq_class import Arbseq_Class

@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+    lantz.drivers.bristol.bristol771.py
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Implementation of Bristol 771A-NIR Laser Spectrometer
+    Author: Peter Bevington
+    Date: 8/10/2018
+"""
+
 from lantz.foreign import LibraryDriver
 from lantz import Feat, DictFeat, Action, Q_
 
@@ -29,7 +38,7 @@ class Bristol_771(LibraryDriver):
     LIBRARY_NAME = 'libbristoldlv.dll'
     LIBRARY_PREFIX = 'LV'
 
-    def __init__(self, serialnum):
+    def __init__(self, serialnum=6535):
         super().__init__()
 
         create_inst = self.lib.CreateInstance

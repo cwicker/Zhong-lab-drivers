@@ -7,6 +7,8 @@
 
     :copyright: 2015 by Lantz Authors, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
+
+    UPDATED 8/10/2018 by Peter Bevington
 """
 
 import struct
